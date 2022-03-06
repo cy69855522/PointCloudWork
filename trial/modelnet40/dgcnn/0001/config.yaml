@@ -1,0 +1,52 @@
+common:
+  seed: 666
+  cuda_devices: [0]
+  num_saved_checkpoints: 3
+
+data:
+  data_class: ModelNet40PlusID
+  data_class_kwargs:
+    norm: false
+    radius: false
+
+  task_type: 'classification'
+  target: 'mean accuracy'
+  pre_transforms:
+    - UnitSphere()
+
+model:
+  norm_type: bn
+  num_neighbors: 20
+  dilation: 1
+
+  criterion:
+    - class: CrossEntropyLoss
+      weight: 1
+      kwargs:
+        label_smoothing: 0.2
+
+training:
+  batch_size: 16
+  num_workers: 4
+  transforms:
+    - ChunkPoints(1024)
+    - ScalePoints((2./3., 3./2.))
+    - Jitter()
+
+  num_epoches: 200
+
+  optimizer: SGD
+  optimizer_kwargs:
+    lr: 0.05
+    momentum: 0.9
+    weight_decay: 0.0001
+
+  scheduler: LambdaLR
+  scheduler_kwargs:
+    lr_lambda: 'lambda e: (1, 0.1)[e >= 120] * (1, 0.1)[e >= 160]'
+
+testing:
+  batch_size: 16
+  num_workers: 4
+  transforms:
+    - ChunkPoints(1024)

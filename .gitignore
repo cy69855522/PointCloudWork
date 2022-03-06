@@ -1,0 +1,5 @@
+*.weight
+data/
+*.fuse_hidden*
+*__pycache__/
+.vscode/
