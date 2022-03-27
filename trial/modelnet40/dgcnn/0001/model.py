@@ -14,6 +14,8 @@ class Net(nn.Module):
         self.block1 = EdgeConvBlock([3, 64, 128], self.k, self.d, norm_type)
         self.block2 = EdgeConvBlock([128, 128, 128], self.k, self.d, norm_type)
         self.block3 = EdgeConvBlock([128, 128, 128], self.k, self.d, norm_type)
+        self.block4 = EdgeConvBlock([128, 128, 128], self.k, self.d, norm_type)
+        self.block5 = EdgeConvBlock([128, 128, 128], self.k, self.d, norm_type)
         self.mlp = MLP([128, 256, 1024], 1, norm_type)
         self.fcs = nn.Sequential(
             nn.Linear(1024, 512),
@@ -36,8 +38,10 @@ class Net(nn.Module):
         
         x = pos.view(B, N, -1)  # [B, N, C]
         x = self.block1(x)  # [B, N, C]
-        x = self.block2(x)  # [B, N, C]
-        x = self.block3(x)  # [B, N, C]
+        x = x + self.block2(x)  # [B, N, C]
+        x = x + self.block3(x)  # [B, N, C]
+        x = x + self.block4(x)  # [B, N, C]
+        x = x + self.block5(x)  # [B, N, C]
         x = self.mlp(x)  # [B, N, C]
         x = x.max(dim=1)[0]  # [B, C]
         x = self.fcs(x)  # [B, C]

@@ -6,7 +6,7 @@ common:
 data:
   data_class: ModelNet40PlusID
   data_class_kwargs:
-    norm: false
+    norm: true
     radius: false
 
   task_type: 'classification'
@@ -17,8 +17,9 @@ data:
 model:
   net_arguments:
     norm_type: bn
-    num_neighbors: 20
+    num_neighbors: 16
     dilation: 1
+    num_interpolation_neighbors: 3
 
   criterion:
     - class: CrossEntropyLoss

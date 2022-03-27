@@ -7,7 +7,7 @@ import random
 import yaml
 
 def parse_config(args):
-    trial_dataset, trial_name, trial_version = args.trial.split('_')
+    trial_dataset, trial_name, trial_version = args.trial.split('.')
     config = {
         'trial_dataset' : trial_dataset,
         'trial_name' : trial_name,

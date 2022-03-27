@@ -4,21 +4,22 @@ common:
   num_saved_checkpoints: 3
 
 data:
-  data_class: ModelNet40PlusID
+  data_class: ShapeNet
   data_class_kwargs:
-    norm: false
+    norm: true
     radius: false
 
-  task_type: 'classification'
-  target: 'mean accuracy'
+  task_type: 'segmentation'
+  target: 'instance miou'
   pre_transforms:
     - UnitSphere()
 
 model:
   net_arguments:
     norm_type: bn
-    num_neighbors: 20
+    num_neighbors: 16
     dilation: 1
+    num_interpolation_neighbors: 3
 
   criterion:
     - class: CrossEntropyLoss
@@ -30,8 +31,7 @@ training:
   batch_size: 16
   num_workers: 4
   transforms:
-    - ShufflePoints()
-    - ChunkPoints(1024)
+    - FixedPoints(1024)
     - ScalePoints((2./3., 3./2.))
     - Jitter()
 
@@ -51,4 +51,4 @@ testing:
   batch_size: 16
   num_workers: 4
   transforms:
-    - ChunkPoints(1024)
+    - FixedPoints(1024)

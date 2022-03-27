@@ -1,5 +1,6 @@
 import torch
 
+import numpy as np
 import random
 
 class Transform(object):
@@ -71,4 +72,29 @@ class MovePoints(Transform):
         dty = data.pos.dtype
         dev = data.pos.device
         data['pos'] += torch.ones(3, dtype=dty, device=dev).uniform_(*self.move_range)
+        return data
+
+class FixedPoints(Transform):
+    def __init__(self, num, balance=True):
+        self.num = num
+        self.balance = balance
+
+    def __call__(self, data):
+        num_nodes = data.num_nodes
+
+        if self.balance and num_nodes < self.num:
+            div = self.num // num_nodes
+            mod = self.num % num_nodes
+            repetition = [np.random.choice(num_nodes, num_nodes, replace=False) for _ in range(div)]
+            overflow = [np.random.choice(num_nodes, mod, replace=False)]
+            choice = np.concatenate(repetition + overflow, axis=0)
+        else:
+            choice = np.random.choice(num_nodes, self.num, replace=True)
+
+        for key, item in data:
+            if 'edge' in key:
+                continue
+            if torch.is_tensor(item) and item.size(0) == num_nodes:
+                data[key] = item[choice]
+
         return data

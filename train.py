@@ -70,7 +70,8 @@ if __name__ == "__main__":
 
     # Set the model.
     assert len(args.cuda_devices) <= 1
-    model = model_package.Net(training_loader.dataset.num_classes).to(device)
+    model = model_package.Net(training_loader.dataset.num_classes(args.task_type),
+                              **args.net_arguments).to(device)
     optimizer = eval(f'optim.{args.training.optimizer}')(params=model.parameters(),
                                                          **args.training.optimizer_kwargs)
     if args.training.scheduler == 'LambdaLR':
@@ -123,7 +124,7 @@ if __name__ == "__main__":
             for i, data in enumerate(t):
                 data = data.to(device)
                 prediction = model(data)
-                batch_results = criterion(prediction, data.y)
+                batch_results = criterion(prediction, data, training_loader.dataset)
                 loss = batch_results['loss']
                 del batch_results['loss']
                 loss.backward()

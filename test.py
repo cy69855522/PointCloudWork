@@ -56,7 +56,7 @@ def evaluate(args, loader, model, device, criterion):
             for i, data in enumerate(t):
                 data = data.to(device)
                 prediction = model(data)
-                metric_results = criterion(prediction, data.y)
+                metric_results = criterion(prediction, data, loader.dataset)
                 loss = metric_results['loss']
                 del metric_results['loss']
 
@@ -86,7 +86,8 @@ if __name__ == "__main__":
     loader = initilize_testing_loader(args)
 
     # Set the model.
-    model = model_package.Net(loader.dataset.num_classes).to(device)
+    model = model_package.Net(loader.dataset.num_classes(args.task_type),
+                              **args.net_arguments).to(device)
     if args.checkpoint_path == 'best':
         checkpoint_dir = os.path.join(args.trial_dir, 'checkpoints')
         checkpoint_paths = glob.glob(os.path.join(checkpoint_dir, 'epoch_*.weight'))
@@ -98,7 +99,7 @@ if __name__ == "__main__":
                                          map_location=device,
                                          pickle_module=dill)
             model.load_state_dict(best_checkpoint['model'].state_dict())
-        print(f'Load the best checkpoint: {best_checkpoint_path}')
+            print(f'Load the best checkpoint: {best_checkpoint_path}')
     elif args.checkpoint_path:
         checkpoint = torch.load(args.checkpoint_path,
                                 map_location=device,
