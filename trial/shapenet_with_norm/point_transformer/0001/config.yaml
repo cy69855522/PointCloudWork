@@ -24,16 +24,12 @@ model:
   criterion:
     - class: CrossEntropyLoss
       weight: 1
-      kwargs:
-        label_smoothing: 0.2
 
 training:
-  batch_size: 16
+  batch_size: 32
   num_workers: 4
   transforms:
-    - FixedPoints(1024)
-    - ScalePoints((2./3., 3./2.))
-    - Jitter()
+    - FixedPoints(2048)
 
   num_epoches: 200
 
@@ -48,7 +44,7 @@ training:
     lr_lambda: 'lambda e: (1, 0.1)[e >= 120] * (1, 0.1)[e >= 160]'
 
 testing:
-  batch_size: 16
+  batch_size: 32
   num_workers: 4
   transforms:
-    - FixedPoints(1024)
+    - FixedPoints(2048)

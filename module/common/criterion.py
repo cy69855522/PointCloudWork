@@ -12,8 +12,9 @@ class Criterion(nn.Module):
         self.max_float_digits = max_float_digits
         for metric in self.metrics:
             loss_class = metric['class']
+            metric_kwargs = metric.get('kwargs', {})
             setattr(self,
-                    loss_class,eval(loss_class)(reduction='none', **metric['kwargs']))
+                    loss_class,eval(loss_class)(reduction='none', **metric_kwargs))
         self.reset()
 
     def reset(self):

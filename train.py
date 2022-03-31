@@ -168,3 +168,6 @@ if __name__ == "__main__":
                 'target' : target
             })
             torch.save(checkpoint, checkpoint_path, pickle_module=dill)
+    
+    best_target = checkpoint_queue[-1]['target'] if checkpoint_queue else 0
+    print(f'Finish training with the best {args.target} {best_target}')

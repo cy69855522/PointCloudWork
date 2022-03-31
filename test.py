@@ -30,8 +30,10 @@ parser.add_argument('--separator_bar', default='*' * 100, type=str,
                     help='Separator bar.')
 parser.add_argument('--max_float_digits', default=4, type=int,
                     help='Limit the max digits to display.')
+parser.add_argument('--pretrained_weight_path', default='', type=str,
+                    help='The pre-trained weight path.')
 parser.add_argument('--checkpoint_path', default='best', type=str,
-                    help='Checkpoint_path. "best" means the best checkpoint of saved ones.')
+                    help='Checkpoint path. "best" means the best checkpoint of saved ones.')
 
 def initilize_testing_loader(args):
     pre_transform = T.Compose([*map(eval, args.pre_transforms)])
@@ -88,6 +90,10 @@ if __name__ == "__main__":
     # Set the model.
     model = model_package.Net(loader.dataset.num_classes(args.task_type),
                               **args.net_arguments).to(device)
+    if args.pretrained_weight_path:
+        pretrained_weight = torch.load(args.pretrained_weight_path, map_location=device)
+        model.load_state_dict(pretrained_weight)
+        print(f'Load the pretrained weight: {args.pretrained_weight_path}')
     if args.checkpoint_path == 'best':
         checkpoint_dir = os.path.join(args.trial_dir, 'checkpoints')
         checkpoint_paths = glob.glob(os.path.join(checkpoint_dir, 'epoch_*.weight'))
