@@ -1,5 +1,7 @@
 import torch
 
+import dill
+import glob
 import numpy as np
 import os
 import platform
@@ -73,3 +75,30 @@ def set_devices(cuda_devices, separator_bar):
         print(f'Running on cpu device: {platform.processor()}')
         print('\n' + separator_bar + '\n')
     return device
+
+def load_pretrained_weight(pretrained_weight_path, model, device):
+    if pretrained_weight_path:
+        device = model.device
+        pretrained_weight = torch.load(pretrained_weight_path, map_location=device)
+        model.load_state_dict(pretrained_weight)
+        print(f'Load the pretrained weight: {pretrained_weight_path}')
+
+def load_checkpoint(trial_dir, checkpoint_path, model, device):
+    if checkpoint_path == 'best':
+        checkpoint_dir = os.path.join(trial_dir, 'checkpoints')
+        checkpoint_paths = glob.glob(os.path.join(checkpoint_dir, 'epoch_*.weight'))
+        get_target_fn = lambda x : x.split('/')[-1].split('.weight')[0].split('_')[-1]
+        checkpoint_paths.sort(key=lambda x : float(get_target_fn(x)))
+        if checkpoint_paths:
+            best_checkpoint_path = checkpoint_paths[-1]
+            best_checkpoint = torch.load(best_checkpoint_path,
+                                         map_location=device,
+                                         pickle_module=dill)
+            model.load_state_dict(best_checkpoint['model'].state_dict())
+            print(f'Load the best checkpoint: {best_checkpoint_path}')
+    elif checkpoint_path:
+        checkpoint = torch.load(checkpoint_path,
+                                map_location=device,
+                                pickle_module=dill)
+        model.load_state_dict(checkpoint['model'].state_dict())
+        print(f'Load the checkpoint: {checkpoint_path}')

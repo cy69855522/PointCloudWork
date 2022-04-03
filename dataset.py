@@ -2,6 +2,7 @@ import torch
 
 from torch_geometric.data import InMemoryDataset, Data
 
+import copy
 import glob
 import h5py
 import json
@@ -63,12 +64,9 @@ class ModelNet40PlusID(InMemoryDataset):
             item, slices = self.data[key], self.slices[key]
             s = list(repeat(slice(None), item.dim()))
             s[self.data.__cat_dim__(key,  item)] = slice(slices[idx], slices[idx + 1])
-            data[key] = item[s]
-    
-        data.pos = data.pos.clone()
-        if 'norm' in data: data.norm = data.norm.clone()
-        data['path_id'] = idx
-        
+            data[key] = item[s].clone()
+
+        data['id'] = idx
         return data
 
 class ShapeNet(InMemoryDataset):
@@ -175,8 +173,7 @@ class ShapeNet(InMemoryDataset):
                                                        slices[idx + 1])
             else:
                 s = slice(slices[idx], slices[idx + 1])
-            data[key] = item[s]
-            
-        data.pos = data.pos.clone()
-        
+            data[key] = item[s].clone()
+
+        data['id'] = idx
         return data

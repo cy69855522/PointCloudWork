@@ -16,15 +16,15 @@ import random
 from collections import deque
 from tqdm import tqdm
 
+from criterion import Criterion
 from data import *
 from dataset import *
-from module.common.criterion import Criterion
 from test import initilize_testing_loader, evaluate
-from utils import parse_config, set_seeds, set_devices
+from utils import parse_config, set_seeds, set_devices, load_pretrained_weight
 
 parser = argparse.ArgumentParser(description='Training')
-parser.add_argument('--trial', default='modelnet40_dgcnn_0001', type=str,
-                    help='The trial name with its version, e.g., modelnet40_gcnn_0001.')
+parser.add_argument('--trial', default='modelnet40.gcnn.0001', type=str,
+                    help='The trial name with its version, e.g., modelnet40.gcnn.0001.')
 parser.add_argument('--show_configs', default=True, type=bool,
                     help='Whether to print the config at the program beginning.')
 parser.add_argument('--show_loss_details', default=False, type=bool,
@@ -33,6 +33,8 @@ parser.add_argument('--separator_bar', default='*' * 100, type=str,
                     help='Separator bar.')
 parser.add_argument('--max_float_digits', default=4, type=int,
                     help='Limit the max digits to display.')
+parser.add_argument('--pretrained_weight_path', default='', type=str,
+                    help='The pre-trained weight path.')
 parser.add_argument('--breakpoint_continuation', default=True, type=bool,
                     help='Resume the training from the last checkpoint.')
 
@@ -72,6 +74,7 @@ if __name__ == "__main__":
     assert len(args.cuda_devices) <= 1
     model = model_package.Net(training_loader.dataset.num_classes(args.task_type),
                               **args.net_arguments).to(device)
+    load_pretrained_weight(args.pretrained_weight_path, model, device)
     optimizer = eval(f'optim.{args.training.optimizer}')(params=model.parameters(),
                                                          **args.training.optimizer_kwargs)
     if args.training.scheduler == 'LambdaLR':
@@ -136,12 +139,13 @@ if __name__ == "__main__":
                               **batch_results)
             
                 if i == len(training_loader) - 1:
-                    training_results = criterion.global_metric_resuls
+                    training_results = criterion.general_results
                     criterion.reset()
                     t.set_postfix(**training_results)
 
         scheduler.step()
         testing_results = evaluate(args, testing_loader, model, device, criterion)
+        criterion.reset()
         target = testing_results[args.target]
         target_name_without_space = args.target.replace(' ', '-')
         checkpoint_name = \

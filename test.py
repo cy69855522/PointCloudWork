@@ -14,14 +14,14 @@ import importlib
 import os
 from tqdm import tqdm
 
+from criterion import Criterion
 from data import *
 from dataset import *
-from module.common.criterion import Criterion
-from utils import parse_config, set_seeds, set_devices
+from utils import parse_config, set_seeds, set_devices, load_pretrained_weight, load_checkpoint
 
 parser = argparse.ArgumentParser(description='Testing')
-parser.add_argument('--trial', default='modelnet40_dgcnn_0001', type=str,
-                    help='The trial name with its version, e.g., modelnet40_gcnn_0001.')
+parser.add_argument('--trial', default='modelnet40.dgcnn.0001', type=str,
+                    help='The trial name with its version, e.g., modelnet40.dgcnn.0001.')
 parser.add_argument('--show_configs', default=True, type=bool,
                     help='Whether to print the config at the program beginning.')
 parser.add_argument('--show_loss_details', default=False, type=bool,
@@ -45,7 +45,7 @@ def initilize_testing_loader(args):
                                     **args.data_class_kwargs)
     loader = DataLoader(dataset,
                         batch_size=args.testing.batch_size,
-                        shuffle=True,
+                        shuffle=False,
                         drop_last=False,
                         pin_memory=True,
                         num_workers=args.testing.num_workers)
@@ -66,11 +66,10 @@ def evaluate(args, loader, model, device, criterion):
                               **metric_results)
             
                 if i == len(loader) - 1:
-                    global_metric_results = criterion.global_metric_resuls
-                    criterion.reset()
-                    t.set_postfix(**global_metric_results)
+                    general_results = criterion.general_results
+                    t.set_postfix(**general_results)
 
-    return global_metric_results
+    return general_results
 
 if __name__ == "__main__":
     args = parser.parse_args()
@@ -90,29 +89,9 @@ if __name__ == "__main__":
     # Set the model.
     model = model_package.Net(loader.dataset.num_classes(args.task_type),
                               **args.net_arguments).to(device)
-    if args.pretrained_weight_path:
-        pretrained_weight = torch.load(args.pretrained_weight_path, map_location=device)
-        model.load_state_dict(pretrained_weight)
-        print(f'Load the pretrained weight: {args.pretrained_weight_path}')
-    if args.checkpoint_path == 'best':
-        checkpoint_dir = os.path.join(args.trial_dir, 'checkpoints')
-        checkpoint_paths = glob.glob(os.path.join(checkpoint_dir, 'epoch_*.weight'))
-        get_target_fn = lambda x : x.split('/')[-1].split('.weight')[0].split('_')[-1]
-        checkpoint_paths.sort(key=lambda x : float(get_target_fn(x)))
-        if checkpoint_paths:
-            best_checkpoint_path = checkpoint_paths[-1]
-            best_checkpoint = torch.load(best_checkpoint_path,
-                                         map_location=device,
-                                         pickle_module=dill)
-            model.load_state_dict(best_checkpoint['model'].state_dict())
-            print(f'Load the best checkpoint: {best_checkpoint_path}')
-    elif args.checkpoint_path:
-        checkpoint = torch.load(args.checkpoint_path,
-                                map_location=device,
-                                pickle_module=dill)
-        model.load_state_dict(checkpoint['model'].state_dict())
-        print(f'Load the checkpoint: {args.checkpoint_path}')
-        
+    load_pretrained_weight(args.pretrained_weight_path, model, device)
+    load_checkpoint(args.trial_dir, args.checkpoint_path, model, device)
+    
     criterion = Criterion(args.task_type,
                           args.criterion,
                           args.show_loss_details,
@@ -120,3 +99,4 @@ if __name__ == "__main__":
 
     # Testing
     evaluate(args, loader, model, device, criterion)
+    criterion.reset()

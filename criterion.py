@@ -22,12 +22,12 @@ class Criterion(nn.Module):
         self.global_dict = {'total_loss' : 0,
                             'num_samples' : 0,
                             'num_batches' : 0}
-        
+        self.id_to_result = {}
+
         if self.task_type == 'classification':
             self.global_dict['num_correct'] = 0
         if self.task_type == 'segmentation':
             self.global_dict['num_correct'] = 0
-            self.global_dict['y_to_ious'] = {}
 
     def forward(self, prediction, data, dataset=None):
         label = self.get_label(data)
@@ -69,9 +69,10 @@ class Criterion(nn.Module):
             return_dict['accuracy'] = num_correct_in_batch / B / N
 
             y_to_ious = {y.item() : [] for y in data.y.unique()}
-            # predicted_label_[N] label_[N] y_[1]
-            for predicted_label_, label_, y_ in zip(predicted_label, label, data.y):
-                parts = dataset.cat_to_seg[dataset.categories[y_.item()]]
+            # predicted_label_[N] label_[N] y_[1] id_[1]
+            for predicted_label_, label_, y_, id_ in zip(predicted_label, label, data.y, data.id):
+                category = dataset.categories[y_.item()]
+                parts = dataset.cat_to_seg[category]
                 part_ious = torch.ones(len(parts), device=dev)
                 for i, part in enumerate(parts):
                     union = torch.sum((predicted_label_ == part) | (label_ == part))
@@ -80,14 +81,16 @@ class Criterion(nn.Module):
                         part_ious[i] = intersection / union
                 miou = part_ious.mean().item()
                 y_to_ious[y_.item()].append(miou)
+                accuracy = (predicted_label_ == label_).float().mean().item()
+                self.id_to_result[id_.item()] = {
+                    'miou' : miou,
+                    'accuracy' : accuracy,
+                    'category' : category,
+                }
 
             instance_miou = sum([*y_to_ious.values()], [])
             instance_miou = sum(instance_miou) / len(instance_miou)
             return_dict['instance miou'] = instance_miou
-            for y, ious in y_to_ious.items():
-                if y not in self.global_dict['y_to_ious']:
-                    self.global_dict['y_to_ious'][y] = []
-                self.global_dict['y_to_ious'][y].extend(ious)
 
         return self.limit_display_digits(return_dict)
     
@@ -99,7 +102,28 @@ class Criterion(nn.Module):
             return data.seg.view(B, -1)  # [B, N]
 
     @property
-    def global_metric_resuls(self):
+    def detailed_results(self):
+        return_dict = {'id_to_result' : self.id_to_result}
+        if self.task_type == 'classification':
+            pass
+        elif self.task_type == 'segmentation':
+            category_to_miou = {}
+            category_to_count = {}
+            for data_result in self.id_to_result.values():
+                data_miou = data_result['miou']
+                data_category = data_result['category']
+                if data_category not in category_to_miou:
+                    category_to_miou[data_category] = []
+                category_to_miou[data_category].append(data_miou)
+            for k, v in category_to_miou.items():
+                category_to_count[k] = len(v)
+                category_to_miou[k] = sum(v) / len(v)
+            return_dict['category_to_miou'] = category_to_miou
+            return_dict['category_to_count'] = category_to_count
+        return return_dict
+
+    @property
+    def general_results(self):
         metric_resuls = {}
         metric_resuls['mean loss'] = self.global_dict['total_loss'] / \
                 self.global_dict['num_samples']
@@ -111,13 +135,17 @@ class Criterion(nn.Module):
                     self.global_dict['num_samples']
             
             total_iou = 0
-            class_ious = {}
-            for y, ious in self.global_dict['y_to_ious'].items():
-                iou_sum = sum(ious)
-                total_iou += iou_sum
-                class_ious[y] = iou_sum / len(ious)
-            class_ious = class_ious.values()
-            assert len(class_ious) == 16
+            category_to_miou = {}
+            for data_result in self.id_to_result.values():
+                data_miou = data_result['miou']
+                data_category = data_result['category']
+                total_iou += data_miou
+                if data_category not in category_to_miou:
+                    category_to_miou[data_category] = []
+                category_to_miou[data_category].append(data_miou)
+            for k, v in category_to_miou.items():
+                category_to_miou[k] = sum(v) / len(v)
+            class_ious = category_to_miou.values()
             metric_resuls['instance miou'] = total_iou / self.global_dict['num_samples']
             metric_resuls['class miou'] = sum(class_ious) / len(class_ious)
 
