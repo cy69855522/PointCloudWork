@@ -1,13 +1,15 @@
 common:
-  seed: 666
+  seed: 123
   cuda_devices: [0]
   num_saved_checkpoints: 3
+  baseline: shapenet_with_norm.rscnn.0001
 
 data:
   data_class: ShapeNet
   data_class_kwargs:
     norm: true
     radius: false
+    train_with_test_set: true
 
   task_type: segmentation
   target: instance miou
@@ -16,35 +18,33 @@ data:
 
 model:
   net_arguments:
-    norm_type: bn
-    num_neighbors: 16
-    dilation: 1
-    num_interpolation_neighbors: 3
+    use_xyz: true
+    input_channels: 0  # feature channels except (x, y, z)
+    relation_prior: 1
 
   criterion:
     - class: CrossEntropyLoss
       weight: 1
 
 training:
-  batch_size: 32
+  batch_size: 28
   num_workers: 4
   transforms:
     - FixedPoints(2048)
 
   num_epoches: 200
 
-  optimizer: SGD
+  optimizer: Adam
   optimizer_kwargs:
-    lr: 0.05
-    momentum: 0.9
-    weight_decay: 0.0001
+    lr: 0.001
+    weight_decay: 0
 
   scheduler: LambdaLR
   scheduler_kwargs:
-    lr_lambda: 'lambda e: (1, 0.1)[e >= 120] * (1, 0.1)[e >= 160]'
+    lr_lambda: 'lambda e: max(0.5**(e // 21), 0.00001 / 0.001)'
 
 testing:
-  batch_size: 32
+  batch_size: 28
   num_workers: 4
   transforms:
     - FixedPoints(2048)

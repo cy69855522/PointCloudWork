@@ -9,8 +9,8 @@ data:
     norm: true
     radius: false
 
-  task_type: 'segmentation'
-  target: 'instance miou'
+  task_type: segmentation
+  target: instance miou
   pre_transforms:
     - UnitSphere()
 

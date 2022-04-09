@@ -9,8 +9,8 @@ data:
     norm: true
     radius: false
 
-  task_type: 'classification'
-  target: 'mean accuracy'
+  task_type: classification
+  target: mean accuracy
   pre_transforms:
     - UnitSphere()
 

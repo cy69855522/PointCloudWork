@@ -72,9 +72,10 @@ class ModelNet40PlusID(InMemoryDataset):
 class ShapeNet(InMemoryDataset):
     cat_to_seg = {'Earphone': [16, 17, 18], 'Motorbike': [30, 31, 32, 33, 34, 35], 'Rocket': [41, 42, 43], 'Car': [8, 9, 10, 11], 'Laptop': [28, 29], 'Cap': [6, 7], 'Skateboard': [44, 45, 46], 'Mug': [36, 37], 'Guitar': [19, 20, 21], 'Bag': [4, 5], 'Lamp': [24, 25, 26, 27], 'Table': [47, 48, 49], 'Airplane': [0, 1, 2, 3], 'Pistol': [38, 39, 40], 'Chair': [12, 13, 14, 15], 'Knife': [22, 23]}
 
-    def __init__(self, root, train=True, transform=None, pre_transform=None, pre_filter=None, norm=False, radius=False):
+    def __init__(self, root, train=True, transform=None, pre_transform=None, pre_filter=None, norm=False, radius=False, train_with_test_set=False):
         self.norm = norm
         self.radius = radius
+        self.train_with_test_set = train_with_test_set
         with open(os.path.join(root, 'raw', 'synsetoffset2category.txt'), 'r') as f:
             self.categories = [line.strip().split()[0] for line in f]
             self.categories.sort()
@@ -117,12 +118,15 @@ class ShapeNet(InMemoryDataset):
             val_ids = set([str(d.split('/')[2]) for d in json.load(f)])
         with open(os.path.join(self.raw_dir, 'train_test_split', 'shuffled_test_file_list.json'), 'r') as f:
             test_ids = set([str(d.split('/')[2]) for d in json.load(f)])
+        train_ids |= val_ids
+        if self.train_with_test_set:
+            train_ids |= test_ids
         for k, v in self.cat_to_dir.items():
             self.meta[k] = []
             dir_point = os.path.join(self.raw_dir, v)
             fns = sorted(os.listdir(dir_point))
             if dataset == 'train':
-                fns = [fn for fn in fns if ((fn[0:-4] in train_ids) or (fn[0:-4] in val_ids))]
+                fns = [fn for fn in fns if fn[0:-4] in train_ids]
             elif dataset == 'test':
                 fns = [fn for fn in fns if fn[0:-4] in test_ids]
             else:
