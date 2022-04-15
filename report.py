@@ -99,7 +99,6 @@ if __name__ == "__main__":
         assert base_args.task_type == new_args.task_type
         assert base_args.pre_transforms == new_args.pre_transforms
         assert base_args.testing.transforms == new_args.testing.transforms
-        assert base_args.trial_dataset == new_args.trial_dataset
         for k in base_args.data_class_kwargs.keys() | new_args.data_class_kwargs.keys():
             base_kwarg = base_args.data_class_kwargs.get(k, None)
             new_kwarg = new_args.data_class_kwargs.get(k, None)
