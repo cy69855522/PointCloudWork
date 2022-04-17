@@ -83,7 +83,7 @@ if __name__ == "__main__":
     else:
         scheduler = eval(f'optim.lr_scheduler.{args.training.scheduler}')(
             optimizer,
-            **args.scheduler_kwargs)
+            **args.training.scheduler_kwargs)
     criterion = Criterion(args.task_type,
                           args.criterion,
                           args.show_loss_details,
@@ -94,6 +94,8 @@ if __name__ == "__main__":
     checkpoint_queue = deque(maxlen=args.num_saved_checkpoints)
     checkpoint_dir = os.path.join(args.trial_dir, 'checkpoints')
     last_checkpoint_path = ''
+    training_record_list = []
+    testing_record_list = []
     if args.breakpoint_continuation:
         last_checkpoint_paths = glob.glob(os.path.join(checkpoint_dir, 'last_*.weight'))
         assert len(last_checkpoint_paths) <= 1
@@ -105,6 +107,8 @@ if __name__ == "__main__":
             model.load_state_dict(last_checkpoint['model'].state_dict())
             optimizer.load_state_dict(last_checkpoint['optimizer'].state_dict())
             scheduler.load_state_dict(last_checkpoint['scheduler'].state_dict())
+            training_record_list = last_checkpoint['training_record_list']
+            testing_record_list = last_checkpoint['testing_record_list']
             print(f'Resume from checkpoint: {last_checkpoint_path}')
         
         checkpoint_paths = glob.glob(os.path.join(checkpoint_dir, 'epoch_*.weight'))
@@ -140,11 +144,13 @@ if __name__ == "__main__":
             
                 if i == len(training_loader) - 1:
                     training_results = criterion.general_results
+                    training_record_list.append(training_results)
                     criterion.reset()
                     t.set_postfix(**training_results)
 
         scheduler.step()
         testing_results = evaluate(args, testing_loader, model, device, criterion)
+        testing_record_list.append(testing_results)
         criterion.reset()
         target = testing_results[args.target]
         target_name_without_space = args.target.replace(' ', '-')
@@ -160,7 +166,8 @@ if __name__ == "__main__":
             'model' : model,
             'optimizer' : optimizer,
             'scheduler' : scheduler,
-            'results' : testing_results
+            'training_record_list' : training_record_list,
+            'testing_record_list' : testing_record_list,
         }
         torch.save(checkpoint, last_checkpoint_path, pickle_module=dill)
         if not checkpoint_queue or \
