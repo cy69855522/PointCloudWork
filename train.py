@@ -90,7 +90,6 @@ if __name__ == "__main__":
                           args.max_float_digits).to(device)
 
     # Training
-    model.train()
     checkpoint_queue = deque(maxlen=args.num_saved_checkpoints)
     checkpoint_dir = os.path.join(args.trial_dir, 'checkpoints')
     last_checkpoint_path = ''
@@ -124,6 +123,7 @@ if __name__ == "__main__":
             })
     
     for epoch in range(scheduler.state_dict()['last_epoch'], args.training.num_epoches):
+        model.train()
         best_target = checkpoint_queue[-1]['target'] if checkpoint_queue else 0
         with tqdm(training_loader,
                   desc=f'Epoch [{epoch}/{args.training.num_epoches}] ' +

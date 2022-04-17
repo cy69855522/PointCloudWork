@@ -58,8 +58,8 @@ def set_seeds(seed, strict=False):
     torch.cuda.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
     if strict:
-        torch.backends.cudnn.enabled = True
-        torch.backends.cudnn.benchmark = True
+        torch.backends.cudnn.enabled = False
+        torch.backends.cudnn.benchmark = False
         torch.backends.cudnn.deterministic = True
 
 def set_devices(cuda_devices, separator_bar):
@@ -84,8 +84,8 @@ def load_pretrained_weight(pretrained_weight_path, model, device):
         print(f'Load the pretrained weight: {pretrained_weight_path}')
 
 def load_checkpoint(trial_dir, checkpoint_path, model, device):
+    checkpoint_dir = os.path.join(trial_dir, 'checkpoints')
     if checkpoint_path == 'best':
-        checkpoint_dir = os.path.join(trial_dir, 'checkpoints')
         checkpoint_paths = glob.glob(os.path.join(checkpoint_dir, 'epoch_*.weight'))
         get_target_fn = lambda x : x.split('/')[-1].split('.weight')[0].split('_')[-1]
         checkpoint_paths.sort(key=lambda x : float(get_target_fn(x)))
@@ -96,6 +96,15 @@ def load_checkpoint(trial_dir, checkpoint_path, model, device):
                                          pickle_module=dill)
             model.load_state_dict(best_checkpoint['model'].state_dict())
             print(f'Load the best checkpoint: {best_checkpoint_path}')
+    elif checkpoint_path == 'last':
+        checkpoint_paths = glob.glob(os.path.join(checkpoint_dir, 'last_*.weight'))
+        assert len(checkpoint_paths) == 1
+        checkpoint_path = checkpoint_paths[0]
+        checkpoint = torch.load(checkpoint_path,
+                                map_location=device,
+                                pickle_module=dill)
+        model.load_state_dict(checkpoint['model'].state_dict())
+        print(f'Load the checkpoint: {checkpoint_path}')
     elif checkpoint_path:
         checkpoint = torch.load(checkpoint_path,
                                 map_location=device,

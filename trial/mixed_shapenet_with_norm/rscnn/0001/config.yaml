@@ -30,7 +30,8 @@ training:
   batch_size: 28
   num_workers: 4
   transforms:
-    - FixedPoints(2048)
+    - ShufflePoints()
+    - ChunkPoints(2048)
 
   num_epoches: 200
 
@@ -47,4 +48,4 @@ testing:
   batch_size: 28
   num_workers: 4
   transforms:
-    - FixedPoints(2048)
+    - ChunkPoints(2048)

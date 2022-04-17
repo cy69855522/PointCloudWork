@@ -1,5 +1,6 @@
 import torch
 
+import math
 import numpy as np
 import random
 
@@ -32,14 +33,21 @@ class ChunkPoints(Transform):
         self.random_start = random_start
         
     def __call__(self, data):
+        num_points = data.pos.size(0)
+        repeatition = math.ceil(self.N / num_points)
+        num_repeated_points = num_points * repeatition
         start = 0
         if self.random_start:
-            start = random.randint(0, data.pos.size(0) - self.N)
-        data['pos'] = data.pos[start : start + self.N]
+            start = random.randint(0, num_repeated_points - self.N)
+        attrs = ['pos']
         if 'norm' in data:
-            data.norm = data.norm[start : start + self.N]
+            attrs.append('norm')
         if 'seg' in data:
-            data.seg = data.seg[start : start + self.N]
+            attrs.append('seg')
+        for attr in attrs:
+            if repeatition > 1:
+                data[attr] = torch.cat([data[attr]] * repeatition, dim=0)
+            data[attr] = data[attr][start : start + self.N]
         return data
 
 class ScalePoints(Transform):

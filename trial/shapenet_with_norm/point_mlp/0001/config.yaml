@@ -17,11 +17,6 @@ data:
 model:
   net_arguments:
     points: 2048
-    de_blocks:
-      - 2
-      - 2
-      - 2
-      - 2
 
   criterion:
     - class: CrossEntropyLoss
@@ -29,25 +24,29 @@ model:
 
 training:
   batch_size: 32
-  num_workers: 4
+  num_workers: 12
   transforms:
-    - FixedPoints(2048)
-    - ScalePoints((0.67, 1.5))
+    - ShufflePoints()
+    - ChunkPoints(2048)
 
-  num_epoches: 300
+  num_epoches: 350
 
-  optimizer: SGD
+  optimizer: Adam
   optimizer_kwargs:
-    lr: 0.05
-    momentum: 0.9
-    weight_decay: 0.0001
+    lr: 0.003
+    betas:
+      - 0.9
+      - 0.999
+    eps: 0.00000001
+    weight_decay: 0
 
-  scheduler: LambdaLR
+  scheduler: StepLR
   scheduler_kwargs:
-    lr_lambda: 'lambda e: (1, 0.1)[e >= 120] * (1, 0.1)[e >= 160]'
+    step_size: 40
+    gamma: 0.5
 
 testing:
   batch_size: 32
   num_workers: 4
   transforms:
-    - FixedPoints(2048)
+    - ChunkPoints(2048)

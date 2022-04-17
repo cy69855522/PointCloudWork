@@ -19,7 +19,6 @@ model:
     norm_type: bn
     num_neighbors: 16
     dilation: 1
-    num_interpolation_neighbors: 3
 
   criterion:
     - class: CrossEntropyLoss

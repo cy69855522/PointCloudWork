@@ -33,7 +33,7 @@ parser.add_argument('--max_float_digits', default=4, type=int,
 parser.add_argument('--pretrained_weight_path', default='', type=str,
                     help='The pre-trained weight path.')
 parser.add_argument('--checkpoint_path', default='best', type=str,
-                    help='Checkpoint path. "best" means the best checkpoint of saved ones.')
+                    help='Checkpoint path. "best" means the best checkpoint of saved ones. "last" means the last one.')
 
 def initilize_testing_loader(args):
     pre_transform = T.Compose([*map(eval, args.pre_transforms)])
