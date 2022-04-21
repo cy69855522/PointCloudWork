@@ -87,7 +87,8 @@ if __name__ == "__main__":
     criterion = Criterion(args.task_type,
                           args.criterion,
                           args.show_loss_details,
-                          args.max_float_digits).to(device)
+                          args.max_float_digits,
+                          args.task_kwargs).to(device)
 
     # Training
     checkpoint_queue = deque(maxlen=args.num_saved_checkpoints)

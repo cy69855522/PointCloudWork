@@ -78,9 +78,8 @@ def set_devices(cuda_devices, separator_bar):
 
 def load_pretrained_weight(pretrained_weight_path, model, device):
     if pretrained_weight_path:
-        device = model.device
         pretrained_weight = torch.load(pretrained_weight_path, map_location=device)
-        model.load_state_dict(pretrained_weight)
+        model.load_state_dict(pretrained_weight, strict=True)
         print(f'Load the pretrained weight: {pretrained_weight_path}')
 
 def load_checkpoint(trial_dir, checkpoint_path, model, device):

@@ -3,13 +3,14 @@ import torch.nn as nn
 from torch.nn import CrossEntropyLoss
 
 class Criterion(nn.Module):
-    def __init__(self, task_type, metrics, keep_loss_details=False, max_float_digits=4):
+    def __init__(self, task_type, metrics, keep_loss_details=False, max_float_digits=4, task_kwargs={}):
         super().__init__()
         assert task_type in ('classification', 'segmentation')
         self.task_type = task_type
         self.metrics = metrics
         self.keep_loss_details = keep_loss_details
         self.max_float_digits = max_float_digits
+        self.task_kwargs = task_kwargs
         for metric in self.metrics:
             loss_class = metric['class']
             metric_kwargs = metric.get('kwargs', {})
@@ -73,13 +74,21 @@ class Criterion(nn.Module):
             for predicted_label_, label_, y_, id_ in zip(predicted_label, label, data.y, data.id):
                 category = dataset.categories[y_.item()]
                 parts = dataset.cat_to_seg[category]
-                part_ious = torch.ones(len(parts), device=dev)
+                rscnn_part_ious = torch.ones(len(parts), device=dev)
+                pointmlp_part_ious = []
                 for i, part in enumerate(parts):
                     union = torch.sum((predicted_label_ == part) | (label_ == part))
                     if union > 0:
                         intersection = torch.sum((predicted_label_ == part) & (label_ == part))
-                        part_ious[i] = intersection / union
-                miou = part_ious.mean().item()
+                        rscnn_part_ious[i] = intersection / union.float()
+                        if (label_ == part).sum() > 0:
+                            pointmlp_part_ious.append(rscnn_part_ious[i].item())
+                if self.task_kwargs['iou_calculation_type'] == 'rscnn':
+                    miou = rscnn_part_ious.mean().item()
+                elif self.task_kwargs['iou_calculation_type'] == 'pointmlp':
+                    miou = sum(pointmlp_part_ious) / len(pointmlp_part_ious)
+                else:
+                    raise NotImplementedError
                 y_to_ious[y_.item()].append(miou)
                 accuracy = (predicted_label_ == label_).float().mean().item()
                 self.id_to_result[id_.item()] = {

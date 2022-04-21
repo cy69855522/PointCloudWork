@@ -11,7 +11,7 @@ data:
 
   task_type: segmentation
   task_kwargs:
-    iou_calculation_type: 'rscnn'
+    iou_calculation_type: 'pointmlp'
 
   target: instance miou
   pre_transforms:

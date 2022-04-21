@@ -46,7 +46,8 @@ def run_trial(args, loader, device):
     criterion = Criterion(args.task_type,
                             args.criterion,
                             args.show_loss_details,
-                            args.max_float_digits).to(device)
+                            args.max_float_digits,
+                            args.task_kwargs).to(device)
 
     criterion.reset()
     general_performance = evaluate(args, loader, model, device, criterion)
